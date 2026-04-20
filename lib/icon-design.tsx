@@ -1,23 +1,24 @@
 /**
- * Shared icon design — ink background, thin cream frame, 定 kanji centered.
- * Used by app/icon.tsx (browser tab favicon) and app/apple-icon.tsx
- * (iOS home-screen icon). Same mark, different sizes.
+ * Shared icon design — ink field, thin cream frame, horizontal ornament
+ * (line — dot — line) centered. This is the same mark used inside the
+ * ShareCard, so the app, the tab, and the certificate all share one glyph.
+ * Used by app/icon.tsx (browser tab) and app/apple-icon.tsx (iOS home).
  */
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
 const INK = "#141414";
 const CREAM = "#ece8df";
 
-export async function renderIcon(size: number) {
-  const fontData = await readFile(
-    join(process.cwd(), "assets/ShipporiMincho-tei.ttf")
-  );
-
-  const inset = Math.max(1, Math.round(size * 0.06));
+export function renderIcon(size: number) {
+  const inset = Math.max(1, Math.round(size * 0.08));
   const borderW = Math.max(1, Math.round(size * 0.015));
-  const kanjiSize = Math.round(size * 0.64);
+
+  // Ornament geometry (scaled to icon size).
+  const ornamentWidth = Math.round(size * 0.56);
+  const lineLen = Math.round(ornamentWidth * 0.38);
+  const gap = Math.round(ornamentWidth * 0.08);
+  const dot = Math.max(3, Math.round(size * 0.045));
+  const strokeW = Math.max(1, Math.round(size * 0.018));
 
   return new ImageResponse(
     (
@@ -44,30 +45,40 @@ export async function renderIcon(size: number) {
         />
         <div
           style={{
-            fontFamily: "Shippori Mincho",
-            fontSize: kanjiSize,
-            color: CREAM,
-            lineHeight: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            gap,
           }}
         >
-          定
+          <div
+            style={{
+              width: lineLen,
+              height: strokeW,
+              background: CREAM,
+            }}
+          />
+          <div
+            style={{
+              width: dot,
+              height: dot,
+              borderRadius: dot,
+              background: CREAM,
+            }}
+          />
+          <div
+            style={{
+              width: lineLen,
+              height: strokeW,
+              background: CREAM,
+            }}
+          />
         </div>
       </div>
     ),
     {
       width: size,
       height: size,
-      fonts: [
-        {
-          name: "Shippori Mincho",
-          data: fontData,
-          style: "normal",
-          weight: 400,
-        },
-      ],
     }
   );
 }
