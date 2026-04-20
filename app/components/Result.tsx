@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { SCENES, TRAIT_DESCRIPTIONS, TRAIT_KEYS } from "@/lib/scenes";
+import { SCENES, TRAIT_DESCRIPTIONS, TRAIT_KEYS, TraitKey } from "@/lib/scenes";
 import {
   Answer,
+  Scores,
+  Summary,
   buildSummary,
   computeCategoryInsights,
   computeScores,
@@ -30,6 +32,14 @@ export default function Result({ answers, onRestart }: Props) {
       .filter((t) => scores[t].count > 0)
       .sort((a, b) => scores[b].normalized - scores[a].normalized);
   }, [scores]);
+
+  const topFive = useMemo(() => ranked.slice(0, 5), [ranked]);
+  const primaryCollapse = useMemo(() => {
+    if (!summary.primary) return null;
+    return (
+      thresholds.find((t) => t.trait === summary.primary)?.collapseAt ?? null
+    );
+  }, [thresholds, summary.primary]);
 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,6 +72,9 @@ export default function Result({ answers, onRestart }: Props) {
     if (!saveRef.current || saving) return;
     setSaving(true);
     try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
       const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(saveRef.current, {
         pixelRatio: 2,
@@ -92,153 +105,156 @@ export default function Result({ answers, onRestart }: Props) {
         </span>
       </header>
 
-      <main className="max-w-3xl w-full mx-auto px-6 md:px-12 py-16 md:py-24">
-        <div ref={saveRef} className="bg-[color:var(--ink)] px-2 py-2">
-          <section className="text-center mb-20 slow-fade">
-            <p className="caption mb-6">— 鑑定書 —</p>
-            <h1 className="font-display text-4xl md:text-6xl tracking-[0.1em] leading-[1.5] mb-8">
-              わたしの定義
-            </h1>
-            <Ornament className="text-[color:var(--cream-mute)] mx-auto mb-10" />
-            <p className="font-display text-xl md:text-3xl leading-[2] text-[color:var(--cream)]">
-              {summary.headline}
-            </p>
-            <p className="font-display text-base md:text-xl leading-[2] text-[color:var(--cream-dim)] mt-2">
-              {summary.verdict}
-            </p>
-            <p className="text-sm text-[color:var(--cream-mute)] mt-10 leading-loose">
-              {summary.essence}
-            </p>
-          </section>
-
-          <section className="mb-20">
-            <Header label="重要度の序列" sub="Traits, ranked by centrality" />
-            <div className="hairline-t">
-              {ranked.map((trait, i) => {
-                const s = scores[trait];
-                const width = s.normalized;
-                return (
-                  <div
-                    key={trait}
-                    className="hairline-b py-5 grid grid-cols-[auto_1fr_auto] gap-4 md:gap-8 items-center"
-                  >
-                    <span className="caption index-num w-8">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <div className="font-display text-xl md:text-2xl mb-1">
-                        {trait}
-                      </div>
-                      <div className="text-xs text-[color:var(--cream-mute)]">
-                        {TRAIT_DESCRIPTIONS[trait]}
-                      </div>
-                      <div className="mt-3 bar-track h-px w-full">
-                        <div
-                          className="bar-fill h-px"
-                          style={{ width: `${Math.max(2, width)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="font-latin text-lg md:text-2xl tabular-nums text-[color:var(--cream)]">
-                      {String(s.normalized).padStart(3, "0")}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-[color:var(--cream-mute)] mt-4 leading-relaxed">
-              数値は 0〜100。50 が中立、100 に近いほどその要素を自己の核として重視している。
-            </p>
-          </section>
-
-          <section className="mb-20">
-            <Header
-              label="崩壊点"
-              sub="Thresholds at which self-identity collapses"
-            />
-            <div className="hairline-t grid md:grid-cols-2">
-              {thresholds
-                .filter(
-                  (t) => t.confidence !== "low" && t.collapseAt != null
-                )
-                .sort((a, b) => (b.collapseAt ?? 0) - (a.collapseAt ?? 0))
-                .map((t) => (
-                  <div
-                    key={t.trait}
-                    className="hairline-b py-5 px-2 md:px-6 flex items-baseline justify-between"
-                  >
-                    <span className="font-display text-lg">{t.trait}</span>
-                    <div className="flex items-baseline gap-3">
-                      <span className="font-latin tabular-nums text-[color:var(--cream-dim)]">
-                        {t.collapseAt}%
-                      </span>
-                      {t.confidence === "mid" && (
-                        <span className="caption">参考</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-            <p className="text-xs text-[color:var(--cream-mute)] mt-4 leading-relaxed">
-              この値を下回ると、あなたは「もう自分ではない」と感じる傾向があります。
-              「参考」はサンプルが少なく、精度が低い値です。
-            </p>
-          </section>
-
-          {insights.length > 0 && (
-            <section className="mb-20">
-              <Header label="主題別の応答" sub="Response tendency by subject" />
-              <div className="hairline-t">
-                {insights.map((ins) => (
-                  <div
-                    key={ins.category}
-                    className="hairline-b py-4 flex items-center justify-between"
-                  >
-                    <span className="font-display">{ins.category}</span>
-                    <div className="flex items-center gap-6">
-                      <span className="font-latin tabular-nums text-xs text-[color:var(--cream-mute)]">
-                        {ins.yes} / {ins.total}
-                      </span>
-                      <span className="caption w-12 text-right">
-                        {ins.tendency === "受容"
-                          ? "許容"
-                          : ins.tendency === "拒絶"
-                          ? "拒絶"
-                          : "均衡"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="hairline-t pt-10 mb-10">
-            <Header label="鑑定概要" sub="Summary" />
-            <dl className="grid grid-cols-2 gap-y-3 text-sm">
-              <dt className="text-[color:var(--cream-mute)]">設問数</dt>
-              <dd className="font-latin tabular-nums text-right">
-                {answeredCount}
-              </dd>
-              <dt className="text-[color:var(--cream-mute)]">
-                自分と認めた設問
-              </dt>
-              <dd className="font-latin tabular-nums text-right">{yesCount}</dd>
-              <dt className="text-[color:var(--cream-mute)]">自己の中心</dt>
-              <dd className="font-display text-right">
-                {summary.primary ?? "—"}
-              </dd>
-              <dt className="text-[color:var(--cream-mute)]">変化に強い領域</dt>
-              <dd className="font-display text-right">
-                {summary.robust.slice(0, 2).join(" · ") || "—"}
-              </dd>
-            </dl>
-          </section>
-
-          <p className="text-center caption pt-4 pb-2">
-            わたしの定義 · watashi no teigi
-          </p>
+      <main className="max-w-3xl w-full mx-auto px-6 md:px-12 py-12 md:py-16">
+        {/* Share card — single-screenshot capture target */}
+        <div className="flex justify-center mb-10">
+          <ShareCard
+            ref={saveRef}
+            summary={summary}
+            scores={scores}
+            topFive={topFive}
+            primaryCollapse={primaryCollapse}
+          />
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-16">
+          <button
+            onClick={copy}
+            className="btn-ghost py-3 font-display tracking-[0.15em] text-sm"
+          >
+            文字を写す
+          </button>
+          <button
+            onClick={savePng}
+            disabled={saving}
+            className="btn-ghost py-3 font-display tracking-[0.15em] text-sm disabled:opacity-50"
+          >
+            {saving ? "生成中…" : "画像で保存"}
+          </button>
+          <button
+            onClick={onRestart}
+            className="btn-primary py-3 font-display tracking-[0.15em] text-sm"
+          >
+            もう一度、問う
+          </button>
+        </div>
+
+        <section className="mb-20">
+          <Header label="重要度の序列" sub="Traits, ranked by centrality" />
+          <div className="hairline-t">
+            {ranked.map((trait, i) => {
+              const s = scores[trait];
+              return (
+                <div
+                  key={trait}
+                  className="hairline-b py-5 grid grid-cols-[auto_1fr_auto] gap-4 md:gap-8 items-center"
+                >
+                  <span className="caption index-num w-8">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <div className="font-display text-xl md:text-2xl mb-1">
+                      {trait}
+                    </div>
+                    <div className="text-xs text-[color:var(--cream-mute)]">
+                      {TRAIT_DESCRIPTIONS[trait]}
+                    </div>
+                    <div className="mt-3 bar-track h-px w-full">
+                      <div
+                        className="bar-fill h-px"
+                        style={{ width: `${Math.max(2, s.normalized)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="font-latin text-lg md:text-2xl tabular-nums text-[color:var(--cream)]">
+                    {String(s.normalized).padStart(3, "0")}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-[color:var(--cream-mute)] mt-4 leading-relaxed">
+            数値は 0〜100。50 が中立、100 に近いほどその要素を自己の核として重視している。
+          </p>
+        </section>
+
+        <section className="mb-20">
+          <Header
+            label="崩壊点"
+            sub="Thresholds at which self-identity collapses"
+          />
+          <div className="hairline-t grid md:grid-cols-2">
+            {thresholds
+              .filter((t) => t.confidence !== "low" && t.collapseAt != null)
+              .sort((a, b) => (b.collapseAt ?? 0) - (a.collapseAt ?? 0))
+              .map((t) => (
+                <div
+                  key={t.trait}
+                  className="hairline-b py-5 px-2 md:px-6 flex items-baseline justify-between"
+                >
+                  <span className="font-display text-lg">{t.trait}</span>
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-latin tabular-nums text-[color:var(--cream-dim)]">
+                      {t.collapseAt}%
+                    </span>
+                    {t.confidence === "mid" && (
+                      <span className="caption">参考</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+          <p className="text-xs text-[color:var(--cream-mute)] mt-4 leading-relaxed">
+            この値を下回ると、あなたは「もう自分ではない」と感じる傾向があります。
+            「参考」はサンプルが少なく、精度が低い値です。
+          </p>
+        </section>
+
+        {insights.length > 0 && (
+          <section className="mb-20">
+            <Header label="主題別の応答" sub="Response tendency by subject" />
+            <div className="hairline-t">
+              {insights.map((ins) => (
+                <div
+                  key={ins.category}
+                  className="hairline-b py-4 flex items-center justify-between"
+                >
+                  <span className="font-display">{ins.category}</span>
+                  <div className="flex items-center gap-6">
+                    <span className="font-latin tabular-nums text-xs text-[color:var(--cream-mute)]">
+                      {ins.yes} / {ins.total}
+                    </span>
+                    <span className="caption w-12 text-right">
+                      {ins.tendency === "受容"
+                        ? "許容"
+                        : ins.tendency === "拒絶"
+                        ? "拒絶"
+                        : "均衡"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="hairline-t pt-10 mb-10">
+          <Header label="鑑定概要" sub="Summary" />
+          <dl className="grid grid-cols-2 gap-y-3 text-sm">
+            <dt className="text-[color:var(--cream-mute)]">設問数</dt>
+            <dd className="font-latin tabular-nums text-right">
+              {answeredCount}
+            </dd>
+            <dt className="text-[color:var(--cream-mute)]">自分と認めた設問</dt>
+            <dd className="font-latin tabular-nums text-right">{yesCount}</dd>
+            <dt className="text-[color:var(--cream-mute)]">自己の中心</dt>
+            <dd className="font-display text-right">{summary.primary ?? "—"}</dd>
+            <dt className="text-[color:var(--cream-mute)]">変化に強い領域</dt>
+            <dd className="font-display text-right">
+              {summary.robust.slice(0, 2).join(" · ") || "—"}
+            </dd>
+          </dl>
+        </section>
 
         <section className="mt-12">
           <button
@@ -292,34 +308,117 @@ export default function Result({ answers, onRestart }: Props) {
             </div>
           )}
         </section>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 hairline-t pt-10 mt-12">
-          <button
-            onClick={copy}
-            className="btn-ghost py-4 font-display tracking-[0.15em]"
-          >
-            文字を写す
-          </button>
-          <button
-            onClick={savePng}
-            disabled={saving}
-            className="btn-ghost py-4 font-display tracking-[0.15em] disabled:opacity-50"
-          >
-            {saving ? "生成中…" : "画像で保存"}
-          </button>
-          <button
-            onClick={onRestart}
-            className="btn-primary py-4 font-display tracking-[0.15em]"
-          >
-            もう一度、問う
-          </button>
-        </div>
       </main>
 
       <footer className="hairline-t px-8 md:px-16 py-6 flex items-center justify-between">
         <span className="caption">わたしの定義</span>
         <span className="caption">watashi no teigi</span>
       </footer>
+    </div>
+  );
+}
+
+type ShareCardProps = {
+  summary: Summary;
+  scores: Scores;
+  topFive: TraitKey[];
+  primaryCollapse: number | null;
+  ref?: React.Ref<HTMLDivElement>;
+};
+
+function ShareCard({
+  ref,
+  summary,
+  scores,
+  topFive,
+  primaryCollapse,
+}: ShareCardProps) {
+  return (
+    <div
+      ref={ref}
+      className="w-full max-w-[480px] mx-auto bg-[color:var(--ink)] border border-[color:var(--ink-line)] p-8 md:p-10 flex flex-col"
+      style={{ aspectRatio: "4 / 5" }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="caption">— 鑑定書 —</span>
+        <span className="caption index-num">№ 001</span>
+      </div>
+
+      <div className="text-center mt-6 mb-5">
+        <h2 className="font-display text-3xl md:text-4xl tracking-[0.12em] leading-[1.4]">
+          わたしの定義
+        </h2>
+        <Ornament className="text-[color:var(--cream-mute)] mx-auto mt-4" />
+      </div>
+
+      <div className="text-center px-1">
+        <p className="font-display text-[15px] md:text-base leading-[2] text-[color:var(--cream)]">
+          {summary.headline}
+        </p>
+        <p className="font-display text-[13px] md:text-sm leading-[2] text-[color:var(--cream-dim)] mt-1">
+          {summary.verdict}
+        </p>
+      </div>
+
+      <div className="rule-thin my-5" />
+
+      <div className="space-y-3 flex-1">
+        {topFive.map((trait, i) => {
+          const s = scores[trait];
+          return (
+            <div
+              key={trait}
+              className="grid grid-cols-[auto_1fr_auto] gap-3 items-center"
+            >
+              <span className="caption index-num w-5">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <div className="font-display text-sm md:text-base mb-1.5 leading-none">
+                  {trait}
+                </div>
+                <div className="bar-track h-px w-full">
+                  <div
+                    className="bar-fill h-px"
+                    style={{ width: `${Math.max(2, s.normalized)}%` }}
+                  />
+                </div>
+              </div>
+              <span className="font-latin tabular-nums text-sm md:text-base text-[color:var(--cream)]">
+                {String(s.normalized).padStart(3, "0")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rule-thin my-4" />
+
+      <div className="text-center">
+        <p className="caption leading-relaxed">
+          {summary.primary ? (
+            <>
+              核 : <span className="text-[color:var(--cream)]">{summary.primary}</span>
+              {primaryCollapse != null && (
+                <>
+                  {"  ·  "}
+                  崩壊点 :{" "}
+                  <span className="text-[color:var(--cream)]">
+                    {primaryCollapse}%
+                  </span>
+                </>
+              )}
+            </>
+          ) : (
+            <span className="text-[color:var(--cream-dim)]">自己の中心、未定</span>
+          )}
+        </p>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <span className="caption">わたしの定義</span>
+        <span className="caption">watashi no teigi</span>
+      </div>
     </div>
   );
 }
