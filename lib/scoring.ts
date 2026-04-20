@@ -7,48 +7,66 @@ export type Answer = {
   choice: Choice;
 };
 
+/**
+ * Unified trait score.
+ * - `weightSum` is the total "testing weight" this trait has received
+ *   (each scene contributes `100 - tag` = how much that scene challenges the trait).
+ * - `importance` accumulates signed weights: +weight on ❌ (you defend the trait),
+ *   -weight on ⭕ (you tolerate the loss).
+ * - `normalized` rescales importance to 0..100 where 50 is neutral,
+ *   100 is "this trait is absolutely essential to my identity",
+ *   0 is "this trait is irrelevant to my identity".
+ */
 export type TraitScore = {
-  raw: number;
-  max: number;
-  normalized: number;
   importance: number;
+  weightSum: number;
+  normalized: number;
   count: number;
+  yesCount: number;
+  noCount: number;
 };
 
 export type Scores = Record<TraitKey, TraitScore>;
 
 export function computeScores(answers: Answer[], scenes: Scene[]): Scores {
   const sceneById = new Map(scenes.map((s) => [s.id, s]));
-  const scores: Scores = {} as Scores;
+  const scores = {} as Scores;
 
   for (const trait of TRAIT_KEYS) {
-    scores[trait] = { raw: 0, max: 0, normalized: 50, importance: 0, count: 0 };
+    scores[trait] = {
+      importance: 0,
+      weightSum: 0,
+      normalized: 50,
+      count: 0,
+      yesCount: 0,
+      noCount: 0,
+    };
   }
 
   for (const answer of answers) {
     const scene = sceneById.get(answer.sceneId);
     if (!scene) continue;
-
     for (const trait of TRAIT_KEYS) {
       const tag = scene.tags[trait];
       if (tag == null) continue;
+      const weight = 100 - tag; // how much this scene challenges the trait
       const s = scores[trait];
-      s.max += 100;
+      s.weightSum += weight;
       s.count += 1;
       if (answer.choice === "yes") {
-        s.raw += tag;
-        s.importance -= 100 - tag;
+        s.importance -= weight;
+        s.yesCount += 1;
       } else {
-        s.raw -= tag;
-        s.importance += 100 - tag;
+        s.importance += weight;
+        s.noCount += 1;
       }
     }
   }
 
   for (const trait of TRAIT_KEYS) {
     const s = scores[trait];
-    if (s.max > 0) {
-      s.normalized = Math.round(50 + (50 * s.raw) / s.max);
+    if (s.weightSum > 0) {
+      s.normalized = Math.round(50 + (50 * s.importance) / s.weightSum);
     }
   }
 
@@ -61,6 +79,7 @@ export type Threshold = {
   maxRejected: number | null;
   collapseAt: number | null;
   count: number;
+  confidence: "low" | "mid" | "high";
 };
 
 export function computeThresholds(
@@ -89,12 +108,16 @@ export function computeThresholds(
     } else if (maxRejected != null) {
       collapseAt = Math.min(100, maxRejected + 5);
     }
+    const total = yesTags.length + noTags.length;
+    const confidence: Threshold["confidence"] =
+      total >= 6 ? "high" : total >= 3 ? "mid" : "low";
     return {
       trait,
       minAccepted,
       maxRejected,
       collapseAt,
-      count: yesTags.length + noTags.length,
+      count: total,
+      confidence,
     };
   });
 }
@@ -140,36 +163,116 @@ export type Summary = {
   robust: TraitKey[];
   headline: string;
   verdict: string;
+  essence: string;
+  pattern: "core" | "dual" | "flat" | "dissolution" | "defense" | "sparse";
 };
 
-export function buildSummary(scores: Scores): Summary {
-  const sorted = [...TRAIT_KEYS]
-    .filter((t) => scores[t].count > 0)
-    .sort((a, b) => scores[b].importance - scores[a].importance);
+/**
+ * Compose a personalized, specific summary from the actual answer pattern.
+ * Uses thresholds and normalized scores to produce a sentence that reflects
+ * *how* the user defines themselves, not just *what* they care about.
+ */
+export function buildSummary(
+  scores: Scores,
+  thresholds: Threshold[],
+  answers: Answer[]
+): Summary {
+  const ranked = [...TRAIT_KEYS]
+    .filter((t) => scores[t].count >= 2)
+    .sort((a, b) => scores[b].normalized - scores[a].normalized);
 
-  const primary = sorted[0] ?? null;
-  const secondary = sorted[1] ?? null;
-  const robust = sorted.slice(-3).reverse();
+  const thresholdByTrait = new Map(thresholds.map((t) => [t.trait, t]));
 
-  let headline = "自己の輪郭が曖昧。揺らぎそのものが、あなたらしさかもしれない。";
-  let verdict = "あなたは自分を\u201c固定された一つの何か\u201dとは定義していない。";
+  const primary = ranked[0] ?? null;
+  const secondary = ranked[1] ?? null;
+  const robust = ranked.slice(-3).reverse();
+  const totalAnswers = answers.length;
+  const yesRate =
+    totalAnswers > 0
+      ? answers.filter((a) => a.choice === "yes").length / totalAnswers
+      : 0;
 
-  if (primary) {
-    const primaryImportance = scores[primary].importance;
-    if (primaryImportance > 80) {
-      headline = `あなたの核は「${primary}」。ここが壊れたとき、あなたは自分でなくなる。`;
-      verdict = `\u201c${primary}\u201dこそがあなたの自己同一性の中心。他の変化には比較的強い。`;
-    } else if (primaryImportance > 30) {
-      headline = `あなたは「${primary}」を軸にしながら、複数の要素で自分を定義している。`;
-      verdict = `${primary}${secondary ? `と${secondary}` : ""}の両方が\u201cあなた\u201dを成立させている。`;
-    } else if (primaryImportance > -30) {
-      headline = "どの要素が欠けても、あなたはあなたでいられる――かもしれない。";
-      verdict = "変化への耐性が高い。自己の定義がしなやか。";
-    } else {
-      headline = "あなたは\u201c自分\u201dをほとんど手放している。";
-      verdict = "変化のほぼすべてを受け入れる。自己の枠がとても薄い。";
+  // Pattern detection
+  let pattern: Summary["pattern"] = "flat";
+  const highScore = primary ? scores[primary].normalized : 50;
+  const lowScore =
+    ranked.length > 0 ? scores[ranked[ranked.length - 1]].normalized : 50;
+  const spread = highScore - lowScore;
+
+  if (ranked.length === 0) {
+    pattern = "sparse";
+  } else if (yesRate >= 0.85) {
+    pattern = "dissolution";
+  } else if (yesRate <= 0.15) {
+    pattern = "defense";
+  } else if (highScore >= 75 && spread >= 30) {
+    pattern = "core";
+  } else if (highScore >= 65 && secondary && scores[secondary].normalized >= 60) {
+    pattern = "dual";
+  } else {
+    pattern = "flat";
+  }
+
+  let headline = "";
+  let verdict = "";
+  let essence = "";
+
+  const collapse = (t: TraitKey | null) =>
+    t ? thresholdByTrait.get(t)?.collapseAt ?? null : null;
+
+  switch (pattern) {
+    case "core": {
+      const p = primary!;
+      const cp = collapse(p);
+      const r = robust[0] && robust[0] !== p ? robust[0] : null;
+      headline = r
+        ? `${r}が変わっても、あなたは揺らがない。`
+        : `あなたの核は「${p}」。`;
+      verdict = cp
+        ? `ただし${p}が${cp}%を下回ると、あなたは自分を失う。`
+        : `${p}こそが、あなたを成立させている。`;
+      essence = `自己の中心は「${p}」。他の変化には比較的強い。`;
+      break;
+    }
+    case "dual": {
+      const p = primary!;
+      const s = secondary!;
+      headline = `あなたは「${p}」と「${s}」の二本柱で立っている。`;
+      verdict = `どちらか一方が崩れれば、あなたは自分でなくなる。`;
+      essence = `単一の軸ではなく、${p}と${s}の組み合わせで自分を定義している。`;
+      break;
+    }
+    case "flat": {
+      headline = `あなたは自分を、特定の一点には定めていない。`;
+      verdict = `どの要素が欠けても、あなたはあなたでいられる――しなやかに。`;
+      essence = `自己の輪郭が分散している。変化への耐性が高い。`;
+      break;
+    }
+    case "dissolution": {
+      headline = `あなたは、ほぼすべての変化を受容する。`;
+      verdict = `輪郭そのものがあなたらしさ。自己という枠に執着がない。`;
+      essence = `自己を固定された一つの何かとは捉えていない。流動的な存在。`;
+      break;
+    }
+    case "defense": {
+      headline = `あなたは、変化の大半を拒絶する。`;
+      verdict = `今ある自分そのものへの信頼が強い。境界線は明確。`;
+      essence = `現状の自分こそが自分。あらゆる変質を自己の喪失とみなす。`;
+      break;
+    }
+    case "sparse": {
+      headline = `データが足りない。もう少し多くの問いが必要だ。`;
+      verdict = `より長いモードで、もう一度試してみてください。`;
+      essence = `判定不能。`;
+      break;
     }
   }
 
-  return { primary, secondary, robust, headline, verdict };
+  return { primary, secondary, robust, headline, verdict, essence, pattern };
+}
+
+export function rankedTraits(scores: Scores): TraitKey[] {
+  return [...TRAIT_KEYS]
+    .filter((t) => scores[t].count > 0)
+    .sort((a, b) => scores[b].normalized - scores[a].normalized);
 }

@@ -39,6 +39,23 @@ export const TRAIT_DESCRIPTIONS: Record<TraitKey, string> = {
   関係: "他者との繋がり・社会的認識",
 };
 
+/**
+ * Tag rubric (authored convention used throughout this file):
+ *
+ *   tag value = how much of that trait is PRESERVED after the scene's transformation.
+ *
+ *   100 = fully intact, unchanged from the real self.
+ *    50 = partially preserved / partially altered.
+ *     0 = completely lost or replaced.
+ *
+ *   Examples:
+ *     「記憶40」= original memories only 40% remain.
+ *     「体100」= body is physically unchanged.
+ *     「意識0」= the continuous subjective stream is severed.
+ *
+ *   If a trait is NOT listed for a scene, it is considered irrelevant /
+ *   uncommitted by the scene (no signal either way).
+ */
 export type Scene = {
   id: number;
   category: string;
@@ -131,11 +148,11 @@ export const SCENES: Scene[] = [
   { id: 56, category: "体", text: "透明な存在になっている。", tags: { 体: 10, 存在: 40 } },
   { id: 57, category: "体", text: "巨大な体を持っている。", tags: { 体: 20, 意識: 100 } },
   { id: 58, category: "体", text: "別の生物の体に入っている。", tags: { 体: 0, 意識: 100 } },
-  { id: 59, category: "体", text: "痛みを一切感じない体になっている。", tags: { 体: 40, 意識: 100 } },
-  { id: 60, category: "体", text: "老化しない体を持っている。", tags: { 体: 60, 時間: 30 } },
+  { id: 59, category: "体", text: "痛みを一切感じない体になっている。", tags: { 体: 70, 意識: 100 } },
+  { id: 60, category: "体", text: "老化しない体を持っている。", tags: { 体: 90, 時間: 40 } },
 
   // ■意識（追加）
-  { id: 61, category: "意識", text: "複数の思考が同時に走っている。", tags: { 意識: 60 } },
+  { id: 61, category: "意識", text: "複数の思考が同時に走っている。", tags: { 意識: 70 } },
   { id: 62, category: "意識", text: "感情を一切感じない。", tags: { 意識: 40, 価値観: 30 } },
   { id: 63, category: "意識", text: "常に誰かに見られていると感じる。", tags: { 意識: 60, 存在: 50 } },
   { id: 64, category: "意識", text: "自分の思考が他人に共有されている。", tags: { 意識: 50, 存在: 40 } },
@@ -150,13 +167,13 @@ export const SCENES: Scene[] = [
 
   // ■時間（追加）
   { id: 71, category: "時間", text: "時間が止まった世界で動ける。", tags: { 時間: 20, 意識: 100 } },
-  { id: 72, category: "時間", text: "あなただけ時間の流れが遅い。", tags: { 時間: 30 } },
+  { id: 72, category: "時間", text: "あなただけ時間の流れが遅い。", tags: { 時間: 50, 意識: 100 } },
   { id: 73, category: "時間", text: "何度も同じ1日を繰り返している。", tags: { 時間: 10, 記憶: 100 } },
   { id: 74, category: "時間", text: "未来に飛び、過去を忘れている。", tags: { 時間: 20, 記憶: 30 } },
   { id: 75, category: "時間", text: "過去の自分を見ている。", tags: { 視点: 30, 時間: 40 } },
 
   // ■空間（追加）
-  { id: 76, category: "空間", text: "無限に続く空間にいる。", tags: { 空間: 10 } },
+  { id: 76, category: "空間", text: "無限に続く空間にいる。", tags: { 空間: 10, 意識: 100 } },
   { id: 77, category: "空間", text: "完全な暗闇の中にいる。", tags: { 空間: 20, 視点: 0 } },
   { id: 78, category: "空間", text: "自分しか存在しない世界にいる。", tags: { 空間: 10, 存在: 40 } },
   { id: 79, category: "空間", text: "他人のいない世界で生きている。", tags: { 関係: 0, 空間: 20 } },
@@ -164,15 +181,15 @@ export const SCENES: Scene[] = [
 
   // ■価値観（追加）
   { id: 81, category: "価値観", text: "善悪の区別がつかない。", tags: { 価値観: 10 } },
-  { id: 82, category: "価値観", text: "すべてを合理で判断する。", tags: { 価値観: 30 } },
-  { id: 83, category: "価値観", text: "他人を道具として扱う。", tags: { 価値観: 0 } },
-  { id: 84, category: "価値観", text: "何にも興味がない。", tags: { 価値観: 20 } },
-  { id: 85, category: "価値観", text: "すべてを愛している。", tags: { 価値観: 50 } },
+  { id: 82, category: "価値観", text: "すべてを合理で判断する。", tags: { 価値観: 40, 意識: 100 } },
+  { id: 83, category: "価値観", text: "他人を道具として扱う。", tags: { 価値観: 0, 関係: 10 } },
+  { id: 84, category: "価値観", text: "何にも興味がない。", tags: { 価値観: 20, 行動: 40 } },
+  { id: 85, category: "価値観", text: "すべてを愛している。", tags: { 価値観: 30 } },
 
   // ■行動（追加）
   { id: 86, category: "行動", text: "完全に同じ行動を毎日繰り返す。", tags: { 行動: 20 } },
   { id: 87, category: "行動", text: "他人に指示されないと動けない。", tags: { 行動: 0 } },
-  { id: 88, category: "行動", text: "自動的に最適な選択をする。", tags: { 行動: 60 } },
+  { id: 88, category: "行動", text: "自動的に最適な選択をする。", tags: { 行動: 20, 意識: 60 } },
   { id: 89, category: "行動", text: "常にランダムな行動をとる。", tags: { 行動: 10 } },
   { id: 90, category: "行動", text: "意思とは関係なく体が動く。", tags: { 行動: 0, 意識: 50 } },
 
@@ -187,6 +204,6 @@ export const SCENES: Scene[] = [
   { id: 96, category: "複合", text: "体は同じだが、記憶と価値観が別人。", tags: { 体: 100, 記憶: 0, 価値観: 0 } },
   { id: 97, category: "複合", text: "記憶は同じだが、意識が別。", tags: { 記憶: 100, 意識: 0 } },
   { id: 98, category: "複合", text: "意識は同じだが、行動と体が別。", tags: { 意識: 100, 行動: 0, 体: 0 } },
-  { id: 99, category: "複合", text: "すべて同じだが、時間だけ違う。", tags: { 時間: 0 } },
+  { id: 99, category: "複合", text: "すべて同じだが、時間だけ違う。", tags: { 時間: 0, 記憶: 100, 体: 100, 意識: 100 } },
   { id: 100, category: "複合", text: "すべてが曖昧で、自分の定義ができない。", tags: { 存在: 0, 意識: 50 } },
 ];

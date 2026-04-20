@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -14,16 +14,27 @@ import { IconArrow, IconCircle, IconCross } from "./icons";
 
 type Props = {
   scenes: Scene[];
+  startIndex?: number;
+  initialAnswers?: Answer[];
+  onProgress?: (answers: Answer[], index: number) => void;
   onFinish: (answers: Answer[]) => void;
   onCancel: () => void;
 };
 
 const SWIPE_THRESHOLD = 120;
 
-export default function Quiz({ scenes, onFinish, onCancel }: Props) {
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
+export default function Quiz({
+  scenes,
+  startIndex = 0,
+  initialAnswers = [],
+  onProgress,
+  onFinish,
+  onCancel,
+}: Props) {
+  const [index, setIndex] = useState(startIndex);
+  const [answers, setAnswers] = useState<Answer[]>(initialAnswers);
   const [exit, setExit] = useState<Choice | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const scene = scenes[index];
   const progress = useMemo(
@@ -31,31 +42,80 @@ export default function Quiz({ scenes, onFinish, onCancel }: Props) {
     [index, scenes.length]
   );
 
-  const register = (choice: Choice) => {
-    const next = [...answers, { sceneId: scene.id, choice }];
-    if (index + 1 >= scenes.length) {
-      onFinish(next);
-      return;
+  const chapter = useMemo(() => {
+    const seen = new Set<string>();
+    for (let i = 0; i <= index; i++) {
+      const c = scenes[i]?.category;
+      if (c) seen.add(c);
     }
-    setAnswers(next);
-    setIndex(index + 1);
-    setExit(null);
-  };
+    return {
+      number: seen.size,
+      name: scene?.category ?? "",
+    };
+  }, [index, scenes, scene]);
 
-  const answer = (choice: Choice) => {
-    setExit(choice);
-    window.setTimeout(() => register(choice), 220);
-  };
+  const register = useCallback(
+    (choice: Choice) => {
+      const nextAnswers = [...answers, { sceneId: scene.id, choice }];
+      const nextIndex = index + 1;
+      if (nextIndex >= scenes.length) {
+        onFinish(nextAnswers);
+        return;
+      }
+      setAnswers(nextAnswers);
+      setIndex(nextIndex);
+      setExit(null);
+      setBusy(false);
+      onProgress?.(nextAnswers, nextIndex);
+    },
+    [answers, index, onFinish, onProgress, scene, scenes.length]
+  );
 
-  const goBack = () => {
+  const answer = useCallback(
+    (choice: Choice) => {
+      if (busy) return;
+      setBusy(true);
+      setExit(choice);
+      window.setTimeout(() => register(choice), 220);
+    },
+    [busy, register]
+  );
+
+  const goBack = useCallback(() => {
     if (index === 0) {
       onCancel();
       return;
     }
-    setAnswers(answers.slice(0, -1));
-    setIndex(index - 1);
+    const nextAnswers = answers.slice(0, -1);
+    const nextIndex = index - 1;
+    setAnswers(nextAnswers);
+    setIndex(nextIndex);
     setExit(null);
-  };
+    onProgress?.(nextAnswers, nextIndex);
+  }, [answers, index, onCancel, onProgress]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement) {
+        const tag = e.target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        answer("yes");
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        answer("no");
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        goBack();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [answer, goBack]);
+
+  if (!scene) return null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -67,9 +127,14 @@ export default function Quiz({ scenes, onFinish, onCancel }: Props) {
           <IconArrow size={12} direction="left" />
           {index === 0 ? "退室" : "前へ"}
         </button>
-        <div className="caption index-num">
-          № {String(index + 1).padStart(2, "0")} /{" "}
-          {String(scenes.length).padStart(2, "0")}
+        <div className="flex items-baseline gap-4">
+          <span className="caption">
+            第{toKanjiNumeral(chapter.number)}章 · {chapter.name}
+          </span>
+          <span className="caption index-num">
+            {String(index + 1).padStart(2, "0")} /{" "}
+            {String(scenes.length).padStart(2, "0")}
+          </span>
         </div>
       </header>
 
@@ -92,10 +157,10 @@ export default function Quiz({ scenes, onFinish, onCancel }: Props) {
       </main>
 
       <section className="px-6 md:px-16 pb-10">
-        <p className="font-display text-center text-xl md:text-2xl tracking-[0.2em] text-[color:var(--cream)] mb-2">
+        <p className="font-display text-center text-2xl md:text-3xl tracking-[0.25em] text-[color:var(--cream)] mb-2">
           直感で。
         </p>
-        <p className="font-display text-center text-base md:text-lg tracking-[0.2em] text-[color:var(--cream-mute)]">
+        <p className="font-display text-center text-lg md:text-xl tracking-[0.25em] text-[color:var(--cream-mute)]">
           考え込まないで。
         </p>
 
@@ -112,7 +177,7 @@ export default function Quiz({ scenes, onFinish, onCancel }: Props) {
             />
           </button>
           <div className="flex flex-col items-center gap-1">
-            <span className="caption">SWIPE</span>
+            <span className="caption">SWIPE · ← →</span>
             <div className="flex gap-2 text-[color:var(--cream-mute)]">
               <IconArrow size={14} direction="left" />
               <IconArrow size={14} />
@@ -208,4 +273,11 @@ function SceneCard({
       </motion.div>
     </motion.article>
   );
+}
+
+function toKanjiNumeral(n: number): string {
+  const k = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+  if (n <= 10) return k[n] ?? String(n);
+  if (n < 20) return "十" + k[n - 10];
+  return String(n);
 }

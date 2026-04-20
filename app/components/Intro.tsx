@@ -1,9 +1,13 @@
 "use client";
 
 import { Ornament, IconArrow } from "./icons";
+import { SavedSession } from "@/lib/storage";
 
 type Props = {
   onStart: (count: number) => void;
+  onResume: () => void;
+  onDiscardResume: () => void;
+  resumable: SavedSession | null;
   total: number;
 };
 
@@ -13,7 +17,13 @@ const OPTIONS = [
   { count: 100, label: "全", desc: "100の思考実験", sub: "じっくり" },
 ];
 
-export default function Intro({ onStart, total }: Props) {
+export default function Intro({
+  onStart,
+  onResume,
+  onDiscardResume,
+  resumable,
+  total,
+}: Props) {
   return (
     <div className="fade-in min-h-screen flex flex-col">
       <header className="px-8 md:px-16 pt-10 flex items-center justify-between">
@@ -45,6 +55,34 @@ export default function Intro({ onStart, total }: Props) {
 
       <section className="px-6 md:px-16 pb-16">
         <div className="max-w-3xl mx-auto">
+          {resumable && (
+            <div className="mb-10 plaque px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="caption mb-1">未完の鑑定</div>
+                <div className="font-display text-lg">
+                  {resumable.answers.length} / {resumable.sceneIds.length}{" "}
+                  <span className="text-[color:var(--cream-mute)] text-sm">
+                    問まで記録されています
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={onDiscardResume}
+                  className="caption hover:text-[color:var(--cream)] transition-colors px-3 py-2"
+                >
+                  破棄する
+                </button>
+                <button
+                  onClick={onResume}
+                  className="btn-primary px-5 py-2 font-display tracking-[0.15em]"
+                >
+                  続きから
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="hairline-t pt-8">
             <p className="caption text-center mb-8">入室</p>
             <div className="grid md:grid-cols-3 gap-px bg-[color:var(--ink-line)]">
@@ -73,7 +111,7 @@ export default function Intro({ onStart, total }: Props) {
 
       <footer className="hairline-t px-8 md:px-16 py-6 flex items-center justify-between text-[color:var(--cream-mute)]">
         <span className="caption">2026 · watashi no teigi</span>
-        <span className="caption">回答方法 : スワイプ または 円/斜線</span>
+        <span className="caption">回答 : スワイプ / ← → / 円・斜線</span>
       </footer>
     </div>
   );
