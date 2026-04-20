@@ -1,21 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Shippori_Mincho, Noto_Serif_JP, EB_Garamond } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const shippori = Shippori_Mincho({
+  weight: ["400", "500", "700"],
+  variable: "--font-display",
+  display: "swap",
+  preload: false,
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const notoSerifJp = Noto_Serif_JP({
+  weight: ["300", "400", "500", "700"],
+  variable: "--font-body",
+  display: "swap",
+  preload: false,
+});
+
+const garamond = EB_Garamond({
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
   subsets: ["latin"],
+  variable: "--font-latin",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Who You're Not — あなたの自己同一性を測る装置",
+  title: "わたしの定義 — 100の思考実験による自己同一性の鑑定",
   description:
-    "100の思考実験に⭕❌で答えて、あなたが自分を何で定義しているかを見つける。",
+    "記憶が、体が、意識が変わっても——それでもあなたは「あなた」でいられるか。100の思考実験に答えて、自分を何で定義しているかを見出す。",
 };
 
 export default function RootLayout({
@@ -26,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${shippori.variable} ${notoSerifJp.variable} ${garamond.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

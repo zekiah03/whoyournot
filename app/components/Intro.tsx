@@ -1,60 +1,80 @@
 "use client";
 
+import { Ornament, IconArrow } from "./icons";
+
 type Props = {
   onStart: (count: number) => void;
   total: number;
 };
 
 const OPTIONS = [
-  { count: 20, label: "ライト", desc: "20問 / 約3分" },
-  { count: 40, label: "スタンダード", desc: "40問 / 約6分" },
-  { count: 100, label: "フル", desc: "全100問 / じっくり" },
+  { count: 20, label: "抄", desc: "20の思考実験", sub: "約3分" },
+  { count: 40, label: "選", desc: "40の思考実験", sub: "約6分" },
+  { count: 100, label: "全", desc: "100の思考実験", sub: "じっくり" },
 ];
 
 export default function Intro({ onStart, total }: Props) {
   return (
-    <div className="fade-in max-w-2xl mx-auto px-6 py-16 md:py-24">
-      <p className="text-xs tracking-[0.3em] text-[color:var(--accent)] mb-4">
-        THOUGHT EXPERIMENT · 100
-      </p>
-      <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
-        Who You&apos;re <span className="text-[color:var(--accent)]">Not</span>
-      </h1>
-      <p className="text-lg md:text-xl text-zinc-300 mb-4 leading-relaxed">
-        記憶を失ったら、体が変わったら、あなたのコピーが現れたら――
-        <br />
-        それでも、あなたは「あなた」だと言えますか？
-      </p>
-      <p className="text-sm text-zinc-500 mb-10 leading-relaxed">
-        {total}個の思考実験に⭕❌で答えてください。最後にあなたが“自分”を何で定義しているかが浮かび上がります。
-      </p>
+    <div className="fade-in min-h-screen flex flex-col">
+      <header className="px-8 md:px-16 pt-10 flex items-center justify-between">
+        <span className="caption">Exhibit № 01</span>
+        <span className="caption">Room of Self-Identity</span>
+      </header>
 
-      <div className="grid gap-3 mb-8">
-        {OPTIONS.map((opt) => (
-          <button
-            key={opt.count}
-            onClick={() => onStart(opt.count)}
-            className="bg-card rounded-xl px-5 py-4 text-left hover:border-[color:var(--accent)]/50 hover:bg-[color:var(--accent-soft)] transition-colors group"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-semibold text-base">{opt.label}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{opt.desc}</div>
-              </div>
-              <div className="text-zinc-500 group-hover:text-[color:var(--accent)] transition-colors">
-                →
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
+      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16 md:py-24 text-center">
+        <p className="caption mb-8">— {total} thought experiments —</p>
 
-      <div className="text-xs text-zinc-600 leading-relaxed border-t border-white/5 pt-6">
-        <p className="mb-1">
-          ⭕ = それでも “自分” だと思う ／ ❌ = もう “自分” ではない
+        <h1 className="font-display text-7xl md:text-9xl font-normal tracking-[0.15em] mb-10">
+          わたしの定義
+        </h1>
+
+        <Ornament className="text-[color:var(--cream-mute)] mb-10" />
+
+        <p className="font-display text-xl md:text-2xl leading-[2.2] max-w-xl mb-4 text-[color:var(--cream)]">
+          記憶が、体が、意識が変わっても、
+          <br />
+          それでもあなたは、あなたでいられるか。
         </p>
-        <p>考え込まず、直感で答えてください。所要時間は目安です。</p>
-      </div>
+
+        <p className="text-sm md:text-base text-[color:var(--cream-mute)] leading-loose max-w-lg mt-8">
+          これは{total}の思考実験による、
+          <br className="md:hidden" />
+          自己同一性の鑑定書である。
+        </p>
+      </section>
+
+      <section className="px-6 md:px-16 pb-16">
+        <div className="max-w-3xl mx-auto">
+          <div className="hairline-t pt-8">
+            <p className="caption text-center mb-8">入室</p>
+            <div className="grid md:grid-cols-3 gap-px bg-[color:var(--ink-line)]">
+              {OPTIONS.map((opt) => (
+                <button
+                  key={opt.count}
+                  onClick={() => onStart(opt.count)}
+                  className="group relative bg-[color:var(--ink)] hover:bg-[color:var(--ink-soft)] px-8 py-10 transition-colors text-center"
+                >
+                  <div className="font-display text-5xl mb-3 text-[color:var(--cream)]">
+                    {opt.label}
+                  </div>
+                  <div className="text-sm text-[color:var(--cream)] mb-1">
+                    {opt.desc}
+                  </div>
+                  <div className="caption">{opt.sub}</div>
+                  <div className="absolute bottom-4 right-4 text-[color:var(--cream-mute)] group-hover:text-[color:var(--cream)] transition-colors">
+                    <IconArrow size={14} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="hairline-t px-8 md:px-16 py-6 flex items-center justify-between text-[color:var(--cream-mute)]">
+        <span className="caption">2026 · watashi no teigi</span>
+        <span className="caption">回答方法 : スワイプ または 円/斜線</span>
+      </footer>
     </div>
   );
 }
