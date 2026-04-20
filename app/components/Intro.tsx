@@ -25,8 +25,8 @@ export default function Intro({
   total,
 }: Props) {
   return (
-    <div className="fade-in min-h-screen flex flex-col">
-      <header className="px-8 md:px-16 pt-10 flex items-center justify-between">
+    <div className="fade-in min-h-dscreen flex flex-col safe-x">
+      <header className="px-6 md:px-16 pt-10 safe-top flex items-center justify-between">
         <span className="caption">Exhibit № 01</span>
         <span className="caption">Room of Self-Identity</span>
       </header>
@@ -34,7 +34,7 @@ export default function Intro({
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-16 md:py-24 text-center">
         <p className="caption mb-8">— {total} thought experiments —</p>
 
-        <h1 className="font-display text-7xl md:text-9xl font-normal tracking-[0.15em] mb-10">
+        <h1 className="font-display text-6xl sm:text-7xl md:text-9xl font-normal tracking-[0.15em] mb-10">
           わたしの定義
         </h1>
 
@@ -109,7 +109,7 @@ export default function Intro({
         </div>
       </section>
 
-      <footer className="hairline-t px-8 md:px-16 py-6 flex items-center justify-between text-[color:var(--cream-mute)]">
+      <footer className="hairline-t px-6 md:px-16 py-6 safe-bottom flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[color:var(--cream-mute)]">
         <span className="caption">2026 · watashi no teigi</span>
         <span className="caption">回答 : スワイプ / ← → / 円・斜線</span>
       </footer>

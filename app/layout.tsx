@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Shippori_Mincho, Noto_Serif_JP, EB_Garamond } from "next/font/google";
 import "./globals.css";
 
@@ -25,9 +25,21 @@ const garamond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "わたしの定義 — 100の思考実験による自己同一性の鑑定",
+  title: "わたしの定義 — 99の思考実験による自己同一性の鑑定",
   description:
-    "記憶が、体が、意識が変わっても——それでもあなたは「あなた」でいられるか。100の思考実験に答えて、自分を何で定義しているかを見出す。",
+    "記憶が、体が、意識が変わっても——それでもあなたは「あなた」でいられるか。99の思考実験に答えて、自分を何で定義しているかを見出す。",
+  appleWebApp: {
+    title: "わたしの定義",
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#141414",
 };
 
 export default function RootLayout({

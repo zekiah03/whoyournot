@@ -101,11 +101,11 @@ export default function Result({ answers, onRestart }: Props) {
   const sceneById = useMemo(() => new Map(SCENES.map((s) => [s.id, s])), []);
 
   return (
-    <div className="fade-in min-h-screen flex flex-col">
-      <header className="px-6 md:px-16 pt-10 flex items-center justify-between hairline-b pb-6">
+    <div className="fade-in min-h-dscreen flex flex-col safe-x">
+      <header className="px-6 md:px-16 pt-10 safe-top flex items-center justify-between hairline-b pb-6">
         <span className="caption">Certificate № 001</span>
         <span className="caption index-num">
-          {answeredCount} / 100 responses
+          {answeredCount} / {SCENES.length} responses
         </span>
       </header>
 
@@ -152,17 +152,25 @@ export default function Result({ answers, onRestart }: Props) {
               return (
                 <div
                   key={trait}
-                  className="hairline-b py-6 grid grid-cols-[auto_1fr_auto] gap-4 md:gap-8 items-start"
+                  className="hairline-b py-6 grid grid-cols-[auto_1fr] md:grid-cols-[auto_1fr_auto] gap-x-4 md:gap-x-8 gap-y-2 items-start"
                 >
                   <span className="caption index-num w-8 mt-1">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <div>
-                    <div className="font-display text-xl md:text-2xl mb-1">
-                      {trait}
+                  <div className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-3 mb-1 md:block">
+                      <div className="font-display text-xl md:text-2xl">
+                        {trait}
+                      </div>
+                      <div className="font-latin text-base tabular-nums text-[color:var(--cream)] md:hidden">
+                        Lv.{lv}
+                      </div>
                     </div>
                     <div className="text-xs text-[color:var(--cream-mute)]">
                       {TRAIT_DESCRIPTIONS[trait]}
+                    </div>
+                    <div className="caption mt-2 text-[color:var(--cream-mute)] md:hidden">
+                      {LEVEL_LABELS[lv]}
                     </div>
                     <blockquote className="mt-3 font-display text-sm md:text-base leading-[1.9] text-[color:var(--cream)] border-l border-[color:var(--ink-line)] pl-4">
                       「{voiceFor(trait, lv)}」
@@ -174,7 +182,7 @@ export default function Result({ answers, onRestart }: Props) {
                       />
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="hidden md:block text-right">
                     <div className="font-latin text-lg md:text-2xl tabular-nums text-[color:var(--cream)]">
                       Lv.{lv}
                     </div>
@@ -204,20 +212,19 @@ export default function Result({ answers, onRestart }: Props) {
               .map((t) => {
                 const lv = scoreToLevel(t.collapseAt ?? 0);
                 return (
-                  <div
-                    key={t.trait}
-                    className="hairline-b py-5 grid grid-cols-[1fr_auto_auto] gap-4 md:gap-8 items-baseline"
-                  >
-                    <span className="font-display text-lg">{t.trait}</span>
-                    <span className="text-xs text-[color:var(--cream-mute)] max-w-[18rem] md:max-w-none leading-relaxed text-right">
+                  <div key={t.trait} className="hairline-b py-5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-display text-lg">{t.trait}</span>
+                      <span className="font-latin tabular-nums text-[color:var(--cream-dim)] shrink-0">
+                        Lv.{lv}
+                        {t.confidence === "mid" && (
+                          <span className="caption ml-2">参考</span>
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[color:var(--cream-mute)] leading-relaxed mt-1">
                       {COLLAPSE_LEVEL_LABELS[lv]}
-                    </span>
-                    <span className="font-latin tabular-nums text-[color:var(--cream-dim)] w-12 text-right">
-                      Lv.{lv}
-                      {t.confidence === "mid" && (
-                        <span className="caption ml-2">参考</span>
-                      )}
-                    </span>
+                    </p>
                   </div>
                 );
               })}
@@ -328,7 +335,7 @@ export default function Result({ answers, onRestart }: Props) {
         </section>
       </main>
 
-      <footer className="hairline-t px-8 md:px-16 py-6 flex items-center justify-between">
+      <footer className="hairline-t px-6 md:px-16 py-6 safe-bottom flex items-center justify-between">
         <span className="caption">わたしの定義</span>
         <span className="caption">watashi no teigi</span>
       </footer>

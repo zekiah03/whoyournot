@@ -118,20 +118,20 @@ export default function Quiz({
   if (!scene) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="px-6 md:px-16 pt-8 flex items-center justify-between hairline-b pb-6">
+    <div className="min-h-dscreen flex flex-col safe-x">
+      <header className="px-4 md:px-16 pt-8 safe-top flex items-center justify-between gap-3 hairline-b pb-6">
         <button
           onClick={goBack}
-          className="caption flex items-center gap-2 hover:text-[color:var(--cream)] transition-colors"
+          className="caption flex items-center gap-2 hover:text-[color:var(--cream)] transition-colors shrink-0"
         >
           <IconArrow size={12} direction="left" />
           {index === 0 ? "退室" : "前へ"}
         </button>
-        <div className="flex items-baseline gap-4">
-          <span className="caption">
+        <div className="flex items-baseline gap-2 md:gap-4 min-w-0">
+          <span className="caption truncate">
             第{toKanjiNumeral(chapter.number)}章 · {chapter.name}
           </span>
-          <span className="caption index-num">
+          <span className="caption index-num shrink-0">
             {String(index + 1).padStart(2, "0")} /{" "}
             {String(scenes.length).padStart(2, "0")}
           </span>
@@ -156,7 +156,7 @@ export default function Quiz({
         </AnimatePresence>
       </main>
 
-      <section className="px-6 md:px-16 pb-10">
+      <section className="px-6 md:px-16 pb-10 safe-bottom">
         <p className="font-display text-center text-2xl md:text-3xl tracking-[0.25em] text-[color:var(--cream)] mb-2">
           直感で。
         </p>
@@ -164,11 +164,11 @@ export default function Quiz({
           考え込まないで。
         </p>
 
-        <div className="mt-10 flex items-center justify-center gap-14 md:gap-24">
+        <div className="mt-10 flex items-center justify-center gap-10 sm:gap-14 md:gap-24">
           <button
             onClick={() => answer("no")}
             aria-label="自分じゃない"
-            className="btn-ghost rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center group"
+            className="btn-ghost rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center group shrink-0"
           >
             <IconCross
               size={36}
@@ -186,7 +186,7 @@ export default function Quiz({
           <button
             onClick={() => answer("yes")}
             aria-label="自分だ"
-            className="btn-ghost rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center group"
+            className="btn-ghost rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center group shrink-0"
           >
             <IconCircle
               size={36}
@@ -196,7 +196,7 @@ export default function Quiz({
           </button>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-16 md:gap-28 caption">
+        <div className="mt-6 flex items-center justify-center gap-10 sm:gap-16 md:gap-28 caption">
           <span>左 : 自分じゃない</span>
           <span>右 : 自分だ</span>
         </div>
