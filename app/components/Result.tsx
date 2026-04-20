@@ -11,6 +11,12 @@ import {
   computeScores,
   computeThresholds,
 } from "@/lib/scoring";
+import {
+  COLLAPSE_LEVEL_LABELS,
+  LEVEL_LABELS,
+  scoreToLevel,
+  voiceFor,
+} from "@/lib/levels";
 import { IconArrow, Ornament } from "./icons";
 
 type Props = {
@@ -51,12 +57,10 @@ export default function Result({ answers, onRestart }: Props) {
       summary.headline,
       summary.verdict,
       "",
-      ...ranked.map(
-        (t, i) =>
-          `${String(i + 1).padStart(2, "0")}. ${t} — ${String(
-            scores[t].normalized
-          ).padStart(3, "0")}`
-      ),
+      ...ranked.map((t, i) => {
+        const lv = scoreToLevel(scores[t].normalized);
+        return `${String(i + 1).padStart(2, "0")}. ${t} — Lv.${lv}  ${LEVEL_LABELS[lv]}`;
+      }),
       "",
       "#わたしの定義",
     ];
@@ -144,12 +148,13 @@ export default function Result({ answers, onRestart }: Props) {
           <div className="hairline-t">
             {ranked.map((trait, i) => {
               const s = scores[trait];
+              const lv = scoreToLevel(s.normalized);
               return (
                 <div
                   key={trait}
-                  className="hairline-b py-5 grid grid-cols-[auto_1fr_auto] gap-4 md:gap-8 items-center"
+                  className="hairline-b py-6 grid grid-cols-[auto_1fr_auto] gap-4 md:gap-8 items-start"
                 >
-                  <span className="caption index-num w-8">
+                  <span className="caption index-num w-8 mt-1">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <div>
@@ -159,6 +164,9 @@ export default function Result({ answers, onRestart }: Props) {
                     <div className="text-xs text-[color:var(--cream-mute)]">
                       {TRAIT_DESCRIPTIONS[trait]}
                     </div>
+                    <blockquote className="mt-3 font-display text-sm md:text-base leading-[1.9] text-[color:var(--cream)] border-l border-[color:var(--ink-line)] pl-4">
+                      「{voiceFor(trait, lv)}」
+                    </blockquote>
                     <div className="mt-3 bar-track h-px w-full">
                       <div
                         className="bar-fill h-px"
@@ -166,15 +174,21 @@ export default function Result({ answers, onRestart }: Props) {
                       />
                     </div>
                   </div>
-                  <span className="font-latin text-lg md:text-2xl tabular-nums text-[color:var(--cream)]">
-                    {String(s.normalized).padStart(3, "0")}
-                  </span>
+                  <div className="text-right">
+                    <div className="font-latin text-lg md:text-2xl tabular-nums text-[color:var(--cream)]">
+                      Lv.{lv}
+                    </div>
+                    <div className="caption mt-1 text-[color:var(--cream-mute)] whitespace-nowrap">
+                      {LEVEL_LABELS[lv]}
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
           <p className="text-xs text-[color:var(--cream-mute)] mt-4 leading-relaxed">
-            数値は 0〜100。50 が中立、100 に近いほどその要素を自己の核として重視している。
+            Lv.1 はその要素が自己と無関係であることを、Lv.5 はそれが自分そのものであることを示す。
+            引用は各レベルで本人が抱きうる感覚の言葉。
           </p>
         </section>
 
@@ -183,30 +197,34 @@ export default function Result({ answers, onRestart }: Props) {
             label="崩壊点"
             sub="Thresholds at which self-identity collapses"
           />
-          <div className="hairline-t grid md:grid-cols-2">
+          <div className="hairline-t">
             {thresholds
               .filter((t) => t.confidence !== "low" && t.collapseAt != null)
               .sort((a, b) => (b.collapseAt ?? 0) - (a.collapseAt ?? 0))
-              .map((t) => (
-                <div
-                  key={t.trait}
-                  className="hairline-b py-5 px-2 md:px-6 flex items-baseline justify-between"
-                >
-                  <span className="font-display text-lg">{t.trait}</span>
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-latin tabular-nums text-[color:var(--cream-dim)]">
-                      {t.collapseAt}%
+              .map((t) => {
+                const lv = scoreToLevel(t.collapseAt ?? 0);
+                return (
+                  <div
+                    key={t.trait}
+                    className="hairline-b py-5 grid grid-cols-[1fr_auto_auto] gap-4 md:gap-8 items-baseline"
+                  >
+                    <span className="font-display text-lg">{t.trait}</span>
+                    <span className="text-xs text-[color:var(--cream-mute)] max-w-[18rem] md:max-w-none leading-relaxed text-right">
+                      {COLLAPSE_LEVEL_LABELS[lv]}
                     </span>
-                    {t.confidence === "mid" && (
-                      <span className="caption">参考</span>
-                    )}
+                    <span className="font-latin tabular-nums text-[color:var(--cream-dim)] w-12 text-right">
+                      Lv.{lv}
+                      {t.confidence === "mid" && (
+                        <span className="caption ml-2">参考</span>
+                      )}
+                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
           <p className="text-xs text-[color:var(--cream-mute)] mt-4 leading-relaxed">
-            この値を下回ると、あなたは「もう自分ではない」と感じる傾向があります。
-            「参考」はサンプルが少なく、精度が低い値です。
+            各軸がどれだけ損なわれたとき、あなたが「もう自分ではない」と感じるか。
+            Lv. が高いほど、わずかな損失でも自己が崩れる。「参考」はサンプルが少なく、精度が低い。
           </p>
         </section>
 
@@ -365,6 +383,7 @@ function ShareCard({
       <div className="space-y-3 flex-1">
         {topFive.map((trait, i) => {
           const s = scores[trait];
+          const lv = scoreToLevel(s.normalized);
           return (
             <div
               key={trait}
@@ -385,7 +404,7 @@ function ShareCard({
                 </div>
               </div>
               <span className="font-latin tabular-nums text-sm md:text-base text-[color:var(--cream)]">
-                {String(s.normalized).padStart(3, "0")}
+                Lv.{lv}
               </span>
             </div>
           );
@@ -402,9 +421,9 @@ function ShareCard({
               {primaryCollapse != null && (
                 <>
                   {"  ·  "}
-                  崩壊点 :{" "}
+                  崩壊 :{" "}
                   <span className="text-[color:var(--cream)]">
-                    {primaryCollapse}%
+                    Lv.{scoreToLevel(primaryCollapse)}
                   </span>
                 </>
               )}
