@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #f4f4f5;
+  --accent: #a78bfa;
+  --accent-soft: rgba(167, 139, 250, 0.12);
+  --yes: #10b981;
+  --no: #ef4444;
+  --muted: #71717a;
+  --border: rgba(255, 255, 255, 0.08);
+  --card: rgba(255, 255, 255, 0.03);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: radial-gradient(ellipse at top, #1a0f2e 0%, #0a0a0f 55%);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100%;
+}
+
+body {
+  font-feature-settings: "palt";
+  letter-spacing: 0.01em;
+}
+
+.bg-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+.btn-yes {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 8px 24px -8px rgba(16, 185, 129, 0.6);
+}
+
+.btn-no {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  box-shadow: 0 8px 24px -8px rgba(239, 68, 68, 0.6);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  box-shadow: 0 8px 24px -8px rgba(167, 139, 250, 0.6);
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, #a78bfa, #ec4899);
+  transition: width 0.4s ease;
+}
+
+.trait-bar {
+  background: linear-gradient(90deg, #a78bfa, #ec4899);
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.trait-bar-muted {
+  background: rgba(255, 255, 255, 0.08);
+}
