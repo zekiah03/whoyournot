@@ -79,16 +79,42 @@ export default function Result({ answers, onRestart }: Props) {
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(saveRef.current, {
+      const { toBlob } = await import("html-to-image");
+      const blob = await toBlob(saveRef.current, {
         pixelRatio: 2,
         backgroundColor: "#141414",
         cacheBust: true,
       });
+      if (!blob) throw new Error("blob");
+
+      const filename = "watashi-no-teigi.png";
+      const file = new File([blob], filename, { type: "image/png" });
+
+      // iOS/Android: native share sheet (lets the user save to Photos).
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
+        try {
+          await navigator.share({ files: [file] });
+          return;
+        } catch (err) {
+          // User cancelled the share sheet — not an error.
+          if ((err as DOMException)?.name === "AbortError") return;
+          // Fall through to download fallback on other errors.
+        }
+      }
+
+      // Desktop / browsers without file-share support: download link.
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = "watashi-no-teigi.png";
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
       notify("画像の生成に失敗しました");
     } finally {
