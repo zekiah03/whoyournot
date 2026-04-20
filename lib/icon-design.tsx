@@ -1,8 +1,7 @@
 /**
- * Shared icon design — ink field, thin cream frame, horizontal ornament
- * (line — dot — line) centered. This is the same mark used inside the
- * ShareCard, so the app, the tab, and the certificate all share one glyph.
- * Used by app/icon.tsx (browser tab) and app/apple-icon.tsx (iOS home).
+ * Icon: concentric mark — thin ring + filled center dot.
+ * Used by app/apple-icon.tsx to render a PNG; app/icon.svg ships the
+ * same geometry as a static SVG for browser tabs.
  */
 import { ImageResponse } from "next/og";
 
@@ -10,15 +9,13 @@ const INK = "#141414";
 const CREAM = "#ece8df";
 
 export function renderIcon(size: number) {
-  const inset = Math.max(1, Math.round(size * 0.08));
-  const borderW = Math.max(1, Math.round(size * 0.015));
+  // Geometry in icon units, scaled to `size`.
+  const ringRadius = size * 0.3125; // r=20 at 64
+  const ringStroke = Math.max(2, Math.round(size * 0.039)); // 2.5 at 64
+  const dotRadius = size * 0.07; // r=4.5 at 64
 
-  // Ornament geometry (scaled to icon size).
-  const ornamentWidth = Math.round(size * 0.56);
-  const lineLen = Math.round(ornamentWidth * 0.38);
-  const gap = Math.round(ornamentWidth * 0.08);
-  const dot = Math.max(3, Math.round(size * 0.045));
-  const strokeW = Math.max(1, Math.round(size * 0.018));
+  const ringOuter = Math.round(ringRadius * 2);
+  const dotOuter = Math.round(dotRadius * 2);
 
   return new ImageResponse(
     (
@@ -35,41 +32,20 @@ export function renderIcon(size: number) {
       >
         <div
           style={{
-            position: "absolute",
-            top: inset,
-            left: inset,
-            right: inset,
-            bottom: inset,
-            border: `${borderW}px solid ${CREAM}`,
-          }}
-        />
-        <div
-          style={{
+            width: ringOuter,
+            height: ringOuter,
+            borderRadius: ringOuter,
+            border: `${ringStroke}px solid ${CREAM}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap,
           }}
         >
           <div
             style={{
-              width: lineLen,
-              height: strokeW,
-              background: CREAM,
-            }}
-          />
-          <div
-            style={{
-              width: dot,
-              height: dot,
-              borderRadius: dot,
-              background: CREAM,
-            }}
-          />
-          <div
-            style={{
-              width: lineLen,
-              height: strokeW,
+              width: dotOuter,
+              height: dotOuter,
+              borderRadius: dotOuter,
               background: CREAM,
             }}
           />
