@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SCENES, TRAIT_DESCRIPTIONS, TRAIT_KEYS, TraitKey } from "@/lib/scenes";
 import {
   Answer,
@@ -18,6 +18,7 @@ import {
   voiceFor,
 } from "@/lib/levels";
 import { IconArrow, Ornament } from "./icons";
+import { contributeToTwin } from "@/lib/contribute";
 
 type Props = {
   answers: Answer[];
@@ -50,6 +51,22 @@ export default function Result({ answers, onRestart }: Props) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const saveRef = useRef<HTMLDivElement>(null);
+  const twinContributed = useRef(false);
+
+  useEffect(() => {
+    if (twinContributed.current) return;
+    twinContributed.current = true;
+    contributeToTwin('whoyournot', {
+      primary: summary.primary ?? null,
+      headline: summary.headline,
+      scores: Object.fromEntries(ranked.map((t) => [t, Math.round(scores[t].normalized)])),
+      collapseTraits: thresholds
+        .filter((t) => t.confidence !== 'low' && t.collapseAt != null)
+        .map((t) => ({ trait: t.trait, collapseAt: t.collapseAt })),
+      answeredCount: answers.length,
+      yesCount: answers.filter((a) => a.choice === 'yes').length,
+    });
+  }, [answers, scores, summary, ranked, thresholds]);
 
   const copy = async () => {
     const lines = [
@@ -90,7 +107,6 @@ export default function Result({ answers, onRestart }: Props) {
       const filename = "watashi-no-teigi.png";
       const file = new File([blob], filename, { type: "image/png" });
 
-      // iOS/Android: native share sheet (lets the user save to Photos).
       if (
         typeof navigator !== "undefined" &&
         typeof navigator.canShare === "function" &&
@@ -100,13 +116,10 @@ export default function Result({ answers, onRestart }: Props) {
           await navigator.share({ files: [file] });
           return;
         } catch (err) {
-          // User cancelled the share sheet — not an error.
           if ((err as DOMException)?.name === "AbortError") return;
-          // Fall through to download fallback on other errors.
         }
       }
 
-      // Desktop / browsers without file-share support: download link.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
